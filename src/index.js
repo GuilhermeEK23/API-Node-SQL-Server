@@ -1,4 +1,6 @@
 import app from "./app.js";
 
-app.listen(3000);
-console.log("Servidor iniciado");
+let port = 3001;
+app.listen(port);
+
+console.log("Servidor iniciado na porta " + port);

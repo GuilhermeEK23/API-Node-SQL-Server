@@ -7,13 +7,24 @@ export const getOrders = async (req, res) => {
     res.json(result.recordset)
 }
 
+export const getOrderData = async (number) => {
+    const pool = await getConnection();
+    const result = await pool
+        .request()
+        .input("Code", sql.VarChar, number)
+        .query(
+            "SELECT po.Code, po.Description, po.Total FROM POSOrders po WHERE OrderStatus = '1' AND po.Code = @Code"
+        );
+    return result.recordset;
+}
+
 export const getOrder = async (req, res) => {
     const pool = await getConnection();
     const result = await pool
         .request()
         .input("Code", sql.VarChar, req.params.code)
         .query(
-            "SELECT po.Code, po.Description FROM POSOrders po WHERE OrderStatus = '1' AND po.Code = @Code"
+            "SELECT po.Code, po.Description, po.Total FROM POSOrders po WHERE OrderStatus = '1' AND po.Code = @Code"
         );
 
     if(result.rowsAffected[0] === 0){
@@ -25,7 +36,7 @@ export const getOrder = async (req, res) => {
             .request()
             .input("Code", sql.VarChar, req.params.code)
             .query(
-                "SELECT po.Code, po.Description FROM POSOrders po WHERE OrderStatus = '1' AND po.Code = @Code"
+                "SELECT po.Code, po.Description, po.Total FROM POSOrders po WHERE OrderStatus = '1' AND po.Code = @Code"
             );
         return res.json(result.recordset);
     }

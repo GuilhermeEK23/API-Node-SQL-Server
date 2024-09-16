@@ -1,10 +1,14 @@
 import { getConnection } from '../database/connection.js';
+import { getOrderData } from './orders.controllers.js';
 import sql from 'mssql';
 
 export const postOrderProducts = async (req, res) => {
   try {
+    console.log(req.body);
+    const dataOrder = await getOrderData(req.body.numberOrder);
+    var totalOrder = dataOrder[0].Total;
+
     const products = req.body.productsOrder;
-    var totalOrder = 0;
     var TempID = 1;
   
     for (const item of products) {
@@ -23,6 +27,7 @@ export const postOrderProducts = async (req, res) => {
           "INSERT INTO POSOrdersProducts (Code, Type, Description, UnitPrice, Quantity, TotalPrice, CFOP, IdPosOrder, Printed, TempID, Observations, Seller) VALUES (@Code, 0, @Description, @UnitPrice, @Quantity, @TotalPrice, (SELECT CFOPSale FROM Products WHERE IdProduct = @IdProduct), (SELECT IdPosOrder FROM POSOrders WHERE Code = @IdPosOrder), 1, @TempID, '', ''); SELECT SCOPE_IDENTITY() AS IdPosProduct"
         );
 
+      console.log(res.recordset);
       const newIdPosProduct = result.recordset[0].IdPosProduct;
 
       await pool

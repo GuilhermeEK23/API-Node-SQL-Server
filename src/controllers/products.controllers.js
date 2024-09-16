@@ -5,7 +5,7 @@ export const getProducts = async (req, res) => {
     const result = await pool
     .request()
     .query(
-        "SELECT IdProduct, Code, Image, Description, SalePrice, RealStock FROM Products p WHERE Type = 0 AND POS = 1"
+        "SELECT IdProduct, Code, Image, Description, SalePrice, RealStock, Unit FROM Products p WHERE Type = 0 AND POS = 1"
     );
     res.json(result.recordset);
 }

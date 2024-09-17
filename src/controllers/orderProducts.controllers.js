@@ -4,7 +4,6 @@ import sql from 'mssql';
 
 export const postOrderProducts = async (req, res) => {
   try {
-    console.log(req.body);
     const dataOrder = await getOrderData(req.body.numberOrder);
     var totalOrder = dataOrder[0].Total;
 
@@ -17,9 +16,9 @@ export const postOrderProducts = async (req, res) => {
         .request()
         .input("Code", sql.VarChar, item.Code)
         .input("Description", sql.VarChar, item.Description)
-        .input("UnitPrice", sql.Decimal, item.SalePrice)
-        .input("Quantity", sql.Decimal, item.Quantity)
-        .input("TotalPrice", sql.Decimal, (item.Quantity * item.SalePrice))
+        .input("UnitPrice", sql.Decimal(10, 2), item.SalePrice)
+        .input("Quantity", sql.Decimal(10, 2), item.Quantity)
+        .input("TotalPrice", sql.Decimal(10, 2), (item.Quantity * item.SalePrice))
         .input("IdProduct", sql.Int, item.IdProduct)
         .input("IdPosOrder", sql.Int, req.body.numberOrder)
         .input("TempID", sql.Int, TempID)
@@ -27,7 +26,6 @@ export const postOrderProducts = async (req, res) => {
           "INSERT INTO POSOrdersProducts (Code, Type, Description, UnitPrice, Quantity, TotalPrice, CFOP, IdPosOrder, Printed, TempID, Observations, Seller) VALUES (@Code, 0, @Description, @UnitPrice, @Quantity, @TotalPrice, (SELECT CFOPSale FROM Products WHERE IdProduct = @IdProduct), (SELECT IdPosOrder FROM POSOrders WHERE Code = @IdPosOrder), 1, @TempID, '', ''); SELECT SCOPE_IDENTITY() AS IdPosProduct"
         );
 
-      console.log(res.recordset);
       const newIdPosProduct = result.recordset[0].IdPosProduct;
 
       await pool
@@ -45,7 +43,7 @@ export const postOrderProducts = async (req, res) => {
     const pool = await getConnection();
     await pool
       .request()
-      .input("Total", sql.Decimal, totalOrder)
+      .input("Total", sql.Decimal(10, 2), totalOrder)
       .input("Code", sql.VarChar, (req.body.numberOrder))
       .query(
         "UPDATE POSOrders SET Total = @Total WHERE Code = @Code"

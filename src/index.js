@@ -1,6 +1,6 @@
 import app from "./app.js";
+import { configServer } from "./config.js";
 
-let port = 3001;
-app.listen(port);
+app.listen(configServer.port);
 
-console.log("Servidor iniciado na porta " + port);
+console.log("Servidor iniciado na porta " + configServer.port);

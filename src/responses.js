@@ -14,6 +14,15 @@ export const invalidFields = ({ message }) => {
   };
 };
 
+export const unauthorized = ({ message }) => {
+  return {
+    status: 401,
+    type: "Unauthorized",
+    title: "Não autorizado",
+    detail: message,
+  };
+};
+
 export const notFound = ({ message }) => {
   return {
     status: 404,

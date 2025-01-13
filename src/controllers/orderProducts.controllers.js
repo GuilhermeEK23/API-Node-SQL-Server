@@ -1,5 +1,5 @@
 import { getConnection } from "../database/connection.js";
-import { getOrderData, putOrder } from "./orders.controllers.js";
+import { putOrder } from "./orders.controllers.js";
 import sql from "mssql";
 
 export const postOrderProducts = async (req, res) => {

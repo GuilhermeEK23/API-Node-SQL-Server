@@ -10,6 +10,7 @@ export const formatAndPrint = (data) => {
   const device = new escpos.Network("192.168.1.210", 9100);
   const printer = new escpos.Printer(device, options);
   const { user, orderNumber, products } = data;
+  console.log(data, null, 2);
 
   device.open((error) => {
     if (error) {

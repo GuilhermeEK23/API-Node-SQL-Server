@@ -1,8 +1,10 @@
-export const nullFields = {
-  status: 400,
-  type: "Fields null",
-  title: "Campos nulos",
-  detail: "Todos os campos são obrigatórios.",
+export const nullFields = ({ message }) => {
+  return {
+    status: 400,
+    type: "Fields null",
+    title: "Campos nulos",
+    detail: message || "Todos os campos são obrigatórios.",
+  };
 };
 
 export const invalidFields = ({ message }) => {

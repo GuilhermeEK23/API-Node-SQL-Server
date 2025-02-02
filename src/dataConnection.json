@@ -1,7 +1,7 @@
 {
   "user": "sa",
   "password": "Acronym_2015",
-  "server": "26.126.196.53",
+  "server": "localhost",
   "port": "1433",
   "database": "EmissorFiscal"
 }

@@ -8,15 +8,19 @@ import {
 } from "../responses.js";
 
 // Busca as ordem dos grupos e subgrupos a partir de um grupo base passado
-export const fetchGroupsOrder = async (groupBase) => {
+export const fetchGroupsOrder = async (groupBase, IdEnterprise) => {
   const pool = await getConnection();
-  const result = await pool.request().query(`
-      SELECT "Order" FROM GroupsOrder;
+  const result = await pool
+    .request()
+    .input("IdEnterprise", sql.Int, IdEnterprise).query(`
+      SELECT "Order" FROM GroupsOrder where IdEnterprise = @IdEnterprise;
     `);
   const groupsOrderString = result.recordset[0].Order;
   const groupsOrder = JSON.parse(groupsOrderString);
   const idGroupBase = groupBase.IdGroup.toString() || "";
-  const groupOrder = groupsOrder.find((order) => order.id === idGroupBase);
+  const groupOrder = groupsOrder.find(
+    (order) => order.id.toString() === idGroupBase.toString()
+  );
   return groupOrder || null;
 };
 
@@ -47,7 +51,9 @@ const processGroupOrder = (
   paternIdGroup,
   listGroups
 ) => {
-  const group = allGroups.find((g) => g.IdGroup.toString() === groupOrder.id);
+  const group = allGroups.find(
+    (g) => g.IdGroup.toString() === groupOrder.id.toString()
+  );
   if (group) {
     listGroups.push(buildGroup(group, paternIdGroup));
 
@@ -79,7 +85,7 @@ export const getGroups = async (req, res) => {
         .json(notFound({ message: "Grupo base não encontrado" }));
     }
 
-    const groupOrder = await fetchGroupsOrder(groupBase);
+    const groupOrder = await fetchGroupsOrder(groupBase, IdEnterprise);
 
     if (!groupOrder) {
       return res

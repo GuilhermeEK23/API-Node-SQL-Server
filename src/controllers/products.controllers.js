@@ -60,7 +60,7 @@ export const getProductsApp = async (req, res) => {
       .input("IdEnterprise", sql.Int, IdEnterprise)
       .input("ConditionGroups", sql.VarChar, conditionGroups).query(`
       SELECT
-  	    IdProduct, Code, Description, Type, SalePrice, ImageSmall, CFOPSale, Unit, IdGroup, Observations, AskOption
+  	    IdProduct, Code, Description, Type, SalePrice, ImageSmall, CFOPSale, Unit, IdGroup, IdEnterprise, Observations, AskOption
       FROM
   	    Products
       WHERE

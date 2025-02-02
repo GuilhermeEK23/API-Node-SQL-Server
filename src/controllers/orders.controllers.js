@@ -15,13 +15,14 @@ export const getOrderByNumber = async (CodeOrder) => {
     .request()
     .input("CodeOrder", sql.Int, CodeOrder)
     .query(
-      `SELECT IdPosOrder, Code, Description, Date, Total, OrderStatus, IdEnterprise, Type, Seller, Observations FROM POSOrders WHERE Code = @CodeOrder`
+      `SELECT IdPosOrder, Code, Description, Client, ClientDescription, Date, Discount, Total, Credit, OrderStatus, IdEnterprise, Type, Seller, Observations, PrebillPrinted, Locked FROM POSOrders WHERE Code = @CodeOrder`
     );
   return result.recordset[0] || null;
 };
 
 export const putOrder = async (req, res) => {
   const dataBody = req.body;
+  console.log(JSON.stringify(dataBody, null, 2));
   const { user, orderNumber, products } = req.body;
 
   let pool;
@@ -115,6 +116,34 @@ export const putOrder = async (req, res) => {
           unauthorized({ message: "Request not allowed to change status" })
         );
     }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json(serverError({ message: error.message }));
+  }
+};
+
+export const getOrders = async (req, res) => {
+  const { IdEnterprise } = req.query;
+
+  if (!IdEnterprise) {
+    return res
+      .status(400)
+      .json(nullFields({ message: "IdEnterprise is required" }));
+  }
+
+  try {
+    const pool = await getConnection();
+    const result = await pool
+      .request()
+      .input("IdEnterprise", sql.Int, IdEnterprise).query(`
+        SELECT IdPosOrder, Code, Description, Client, ClientDescription, Date, Discount, Total, Credit, OrderStatus, IdEnterprise, Type, Seller, Observations, PrebillPrinted, Locked FROM POSOrders WHERE IdEnterprise = @IdEnterprise;
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json(notFound({ message: "Orders not found" }));
+    }
+
+    res.status(200).json(successAction({ result: result.recordset }));
   } catch (error) {
     console.log(error);
     res.status(500).json(serverError({ message: error.message }));

@@ -109,7 +109,9 @@ export const getUsers = async (req, res) => {
     const result = await pool
       .request()
       .input("IdEnterprise", sql.Int, IdEnterprise)
-      .query("SELECT * FROM Users WHERE IdEnterprise = @IdEnterprise");
+      .query(
+        "SELECT IdUser, Name, Email, Password, Status, IdEnterprise, IdProfile, Notes, CellphoneNumber, ExtraFields FROM Users WHERE IdEnterprise = @IdEnterprise"
+      );
 
     if (result.recordset.length === 0) {
       return res

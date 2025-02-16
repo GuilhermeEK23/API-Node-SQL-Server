@@ -1,25 +1,27 @@
 {
   "name": "api-node-express",
   "version": "1.0.0",
+  "description": "Esta API está usando o padrão Problem Details for HTTP APIs (RFC 7807) para retornar erros.",
   "main": "index.js",
-  "type": "module",
   "scripts": {
-    "dev": "nodemon src/index.js"
+    "start": "ts-node src/index.ts",
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "serve": "node dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.13.4",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  },
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "escpos": "^3.0.0-alpha.6",
-    "escpos-network": "^3.0.0-alpha.5",
-    "express": "^4.21.0",
-    "morgan": "^1.10.0",
-    "mssql": "^11.0.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.4"
+    "express": "^4.21.2"
   }
 }

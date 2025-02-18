@@ -1,10 +1,10 @@
 import { Express, Router } from "express";
-import { userRoutes } from "./routes/userRoutes";
-import { orderRoutes } from "./routes/orderRoutes";
-import { groupRoutes } from "./routes/groupRoutes";
-import { productRoutes } from "./routes/productRoutes";
-import { optionalRoutes } from "./routes/optionalRoutes";
-import { additionalRoutes } from "./routes/additionalRoutes";
+import { userRoutes } from "./routes/userRoutes.js";
+import { orderRoutes } from "./routes/orderRoutes.js";
+import { groupRoutes } from "./routes/groupRoutes.js";
+import { productRoutes } from "./routes/productRoutes.js";
+import { optionalRoutes } from "./routes/optionalRoutes.js";
+import { additionalRoutes } from "./routes/additionalRoutes.js";
 
 export const setupRoutes = (app: Express): void => {
   const router = Router();

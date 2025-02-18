@@ -1,5 +1,6 @@
 import { Router } from "express";
+import { ordersFromDatabase } from "../controllers/orderControllers.js";
 
 export const orderRoutes = (router: Router): void => {
-  router.get("/orders", (req, res) => {});
+  router.get("/orders", ordersFromDatabase);
 };

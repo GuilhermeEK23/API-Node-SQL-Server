@@ -1,5 +1,6 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
+import { usersFromDatabase } from "../controllers/userControllers.js";
 
-export const userRoutes = (router: Router): void => {
-  router.get("/users", (req, res) => {});
+export const userRoutes = (router: Router) => {
+  router.get("/users", usersFromDatabase);
 };

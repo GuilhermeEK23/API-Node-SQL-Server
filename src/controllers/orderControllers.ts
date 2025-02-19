@@ -1,5 +1,5 @@
 import { Request, RequestHandler, Response } from "express";
-import { getOrders } from "../repository/orderRepository.js";
+import { getOrders, putOrder } from "../repository/orderRepository.js";
 import {
   nullFields,
   invalidFields,
@@ -7,6 +7,7 @@ import {
   successAction,
   notFound,
 } from "../responses.js";
+import { Order } from "../types.js";
 
 export const ordersFromDatabase: RequestHandler = async (
   req: Request,
@@ -35,4 +36,42 @@ export const ordersFromDatabase: RequestHandler = async (
   res
     .status(200)
     .json(successAction("Comandas encontradas com sucesso", orders));
+};
+
+export const updateOrderDatabase: RequestHandler = async (
+  req: Request,
+  res: Response
+) => {
+  const { id } = req.params;
+  if (!id) {
+    res.status(400).json(nullFields("Id não informado"));
+    return;
+  } else if (isNaN(Number(id))) {
+    res.status(400).json(invalidFields("Id não é um número válido"));
+    return;
+  }
+
+  const order: Order = req.body;
+  // console.log(JSON.stringify(order, null, 2));
+
+  if (!order.Products || !order.User) {
+    res.status(400).json(nullFields("Produtos ou Usuário não informados"));
+    return;
+  }
+
+  const result = await putOrder(order);
+  if (result instanceof Error) {
+    res
+      .status(500)
+      .json(serverError("Erro ao atualizar comanda e produtos da comanda"));
+    return;
+  } else if (result[0].rowsAffected[0] === 0) {
+    res.status(404).json(notFound("Comanda não encontrada"));
+    return;
+  }
+  res.status(201).json({
+    message: "Comanda atualizada com sucesso",
+    status: 201,
+    success: true,
+  });
 };

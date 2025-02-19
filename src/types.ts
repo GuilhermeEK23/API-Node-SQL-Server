@@ -33,6 +33,7 @@ export interface Product {
   IdProductInOrder?: string;
   Quantity?: number;
   Optionals?: Optional[];
+  Total?: number;
 }
 
 export interface Order {

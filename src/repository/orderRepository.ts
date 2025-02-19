@@ -1,6 +1,6 @@
 import { getConnection } from "../database/connection.js";
 import sql from "mssql";
-import { Order } from "../types.js";
+import { Order, Product } from "../types.js";
 
 export const getOrders = async (IdEnterprise: number) => {
   try {
@@ -23,104 +23,169 @@ export const getOrders = async (IdEnterprise: number) => {
   }
 };
 
-// export const putOrder = async (req, res) => {
-//   const dataBody = req.body;
-//   console.log(JSON.stringify(dataBody, null, 2));
-//   const { user, orderNumber, products } = req.body;
+const putOrderProducts = async (
+  pool: sql.ConnectionPool,
+  IdPosOrder: number,
+  products: Product[],
+  seller: string
+) => {
+  try {
+    // Obter o próximo TempID para o IdPosOrder especificado
+    const tempIdResult = await pool
+      .request()
+      .input("IdPosOrder", sql.Int, IdPosOrder)
+      .query(
+        "SELECT COALESCE(MAX(TempID), 0) AS LastTempID FROM POSOrdersProducts WHERE IdPosOrder = @IdPosOrder"
+      );
+    const lastTempID = tempIdResult.recordset[0].LastTempID;
 
-//   let pool;
-//   try {
-//     pool = await getConnection();
+    const result = await Promise.all(
+      products.map(async (product) => {
+        const nextTempID = lastTempID + products.indexOf(product) + 1;
 
-//     if (!user || !orderNumber) {
-//       return res.status(400).json(nullFields);
-//     }
+        const result = await pool
+          .request()
+          .input("IdProduct", sql.Int, product.IdProductServer)
+          .input("Description", sql.NVarChar, product.Description)
+          .input("UnitPrice", sql.Decimal(18, 2), product.SalePrice)
+          .input("Quantity", sql.Int, product.Quantity)
+          .input("TotalPrice", sql.Decimal(18, 2), product.Total)
+          .input("IdPosOrder", sql.Int, IdPosOrder)
+          .input("TempID", sql.Int, nextTempID)
+          .input("Observations", sql.NVarChar, product.Observations)
+          .input(
+            "Options",
+            sql.NVarChar(500),
+            product.Optionals?.map((option) => option.Description).join(", ") ||
+              ""
+          )
+          .input("Seller", sql.NVarChar, seller).query(`
+            INSERT INTO POSOrdersProducts (
+              Code,
+              Description,
+              Type,
+              UnitPrice,
+              Quantity,
+              TotalPrice,
+              CFOP,
+              IdPosOrder,
+              Printed,
+              TempID,
+              Observations,
+              Options,
+              Seller
+            ) VALUES (
+              (SELECT Code FROM Products WHERE IdProduct = @IdProduct),
+              @Description,
+              0,
+              @UnitPrice,
+              @Quantity,
+              @TotalPrice,
+              (SELECT CFOPSale FROM Products WHERE IdProduct = @IdProduct),
+              @IdPosOrder,
+              1,
+              @TempID,
+              @Observations,
+              @Options,
+              @Seller
+            );
+            SELECT SCOPE_IDENTITY() AS IdPosProduct;
+            `);
 
-//     // Verifica se a comanda existe
-//     const order = await getOrderByNumber(orderNumber);
+        return result;
+      })
+    );
 
-//     if (order === null) {
-//       return res.status(404).json(notFound({ message: "Order not found" }));
-//     } else if (order.OrderStatus === 0 || order.OrderStatus === 1) {
-//       // Calcula o total da comanda
-//       const total = products.reduce((acc, product) => {
-//         const productTotal = product.SalePrice * product.quantity;
-//         const totalOptional = product.optionals.reduce((acc, optional) => {
-//           const optionalTotal = optional.SalePrice * optional.quantity;
-//           return acc + optionalTotal;
-//         }, 0);
-//         return acc + productTotal + totalOptional;
-//       }, 0);
+    return result;
+  } catch (error) {
+    console.log("Erro ao inserir os produtos da comanda: ", error);
+    return error as Error;
+  }
+};
 
-//       let result = await pool
-//         .request()
-//         .input("total", sql.Decimal(18, 2), parseFloat(total))
-//         .input("orderStatus", sql.Int, 1)
-//         .input("seller", sql.VarChar, user.Name)
-//         .input("IdPosOrder", sql.Int, order.IdPosOrder).query(`
-//           UPDATE POSOrders
-//           SET Total = @total,
-//               OrderStatus = @orderStatus,
-//               Seller = @seller
-//           WHERE IdPosOrder = @IdPosOrder
-//         `);
+export const putOrder = async (order: Order) => {
+  try {
+    const pool = await getConnection();
 
-//       if (result.rowsAffected[0] === 1) {
-//         // Insere os produtos na tabela POSOrderProducts
-//         for (let i = 0; i < products.length; i++) {
-//           const SalePriceProduct =
-//             products[i].SalePrice +
-//             products[i].optionals.reduce(
-//               (acc, optional) => acc + optional.SalePrice * optional.quantity,
-//               0
-//             );
+    if (pool instanceof Error) return pool;
+    if (!order.Products || order.Products.length === 0 || !order.User)
+      return new Error("Pedido inválido");
+    const resultTotalInOrder = await pool
+      .request()
+      .input("IdPosOrder", sql.Int, order.IdPosOrderServer)
+      .query(`SELECT Total FROM POSOrders WHERE IdPosOrder = @IdPosOrder;`);
 
-//           let optionals = "";
-//           JSON.stringify(
-//             products[i].optionals.map((op) => {
-//               optionals += `${op.Description}(${op.quantity});`;
-//             })
-//           );
+    const totalInDatabase = resultTotalInOrder.recordset[0].Total;
 
-//           result = await pool
-//             .request()
-//             .input("Code", sql.VarChar, products[i].Code)
-//             .input("Description", sql.VarChar, products[i].Description)
-//             .input("Type", sql.Int, products[i].Type)
-//             .input("UnitPrice", sql.Decimal(18, 2), SalePriceProduct)
-//             .input("Quantity", sql.Decimal(18, 2), products[i].quantity)
-//             .input(
-//               "TotalPrice",
-//               sql.Decimal(18, 2),
-//               SalePriceProduct * products[i].quantity
-//             )
-//             .input("CFOP", sql.Int, products[i].CFOPSale)
-//             .input("IdPosOrder", sql.Int, order.IdPosOrder)
-//             .input("Printed", sql.Bit, 1)
-//             .input("TempID", sql.Int, i + 1)
-//             .input("Observations", sql.VarChar, products[i].Observations || "")
-//             .input("Options", sql.VarChar, optionals || null)
-//             .input("Seller", sql.VarChar, user.Name || "").query(`
-//               INSERT INTO POSOrdersProducts
-//                 (Code, Description, Type, UnitPrice, Quantity, TotalPrice, CFOP, IdPosOrder, Printed, TempID, Observations, Options, Seller)
-//               VALUES
-//                 (@Code, @Description, @Type, @UnitPrice, @Quantity, @TotalPrice, @CFOP, @IdPosOrder, @Printed, @TempID, @Observations, @Options, @Seller)
-//             `);
-//         }
-//       }
-//       formatAndPrint(dataBody);
-//       return res
-//         .status(200)
-//         .json(successAction({ message: "Order is already closed" }));
-//     } else {
-//       return res
-//         .status(401)
-//         .json(
-//           unauthorized({ message: "Request not allowed to change status" })
-//         );
-//     }
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json(serverError({ message: error.message }));
-//   }
-// };
+    const getLocalDateTimeWithMs = () => {
+      const now = new Date();
+      return (
+        now.toLocaleString("sv-SE", { timeZone: "America/Sao_Paulo" }) +
+        `.${now.getMilliseconds().toString().padStart(3, "0")}`
+      );
+    };
+
+    const result = await pool
+      .request()
+      .input("date", sql.NVarChar, getLocalDateTimeWithMs())
+      .input("total", sql.Decimal(18, 2), order.Total + totalInDatabase)
+      .input(
+        "orderStatus",
+        sql.Int,
+        order.OrderStatus === 0 ? 1 : order.OrderStatus
+      )
+      .input("seller", sql.VarChar, order.User.Name)
+      .input("IdPosOrder", sql.Int, order.IdPosOrderServer).query(`
+          UPDATE
+            POSOrders
+          SET
+            Date = @date,
+            Total = @total,
+            OrderStatus = @orderStatus,
+            Seller = @seller
+          WHERE
+            IdPosOrder = @IdPosOrder;
+        `);
+
+    if (result.rowsAffected[0] === 1) {
+      // Insere os produtos na tabela POSOrderProducts
+      const resultProducts = await putOrderProducts(
+        pool,
+        order.IdPosOrderServer,
+        order.Products,
+        order.User.Name
+      );
+      if (resultProducts instanceof Error) {
+        // Se houver um erro ao inserir os produtos, reverte a atualização do pedido e retorna o erro
+        await pool
+          .request()
+          .input("date", sql.DateTime, order.Date)
+          .input("total", sql.Decimal(18, 2), totalInDatabase)
+          .input("orderStatus", sql.Int, order.OrderStatus)
+          .input("seller", sql.VarChar, null)
+          .input("IdPosOrder", sql.Int, order.IdPosOrderServer).query(`
+          UPDATE
+            POSOrders
+          SET
+            Date = @date,
+            Total = @total,
+            OrderStatus = @orderStatus,
+            Seller = @seller
+          WHERE
+            IdPosOrder = @IdPosOrder;
+        `);
+        return new Error(
+          "Erro ao inserir os produtos na tabela POSOrderProducts."
+        );
+      }
+
+      // Se não houver erro, retorna o resultado da atualização do pedido
+      return [...resultProducts, result];
+    }
+    // formatAndPrint(dataBody);
+    return new Error("Erro ao atualizar o pedido, nenhuma linha afetada.");
+  } catch (error) {
+    console.log(error);
+    return error as Error;
+  }
+};

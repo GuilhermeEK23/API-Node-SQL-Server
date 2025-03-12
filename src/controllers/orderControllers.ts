@@ -1,5 +1,10 @@
 import { Request, RequestHandler, Response } from "express";
-import { getOrders, putOrder } from "../repository/orderRepository.js";
+import {
+  getOrders,
+  getOrder,
+  putOrder,
+  getOrderProducts,
+} from "../repository/orderRepository.js";
 import {
   nullFields,
   invalidFields,
@@ -38,6 +43,37 @@ export const ordersFromDatabase: RequestHandler = async (
     .json(successAction("Comandas encontradas com sucesso", orders));
 };
 
+export const orderFromDatabase: RequestHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { id } = req.params;
+  if (!id) {
+    res.status(400).json(nullFields("Id não informado"));
+    return;
+  } else if (isNaN(Number(id))) {
+    res.status(400).json(invalidFields("Id não é um número válido"));
+    return;
+  }
+
+  const order = await getOrder(Number(id));
+
+  if (order instanceof Error) {
+    res.status(500).json(serverError(order.message));
+    return;
+  } else {
+    const products = await getOrderProducts(Number(id));
+    if (products instanceof Error) {
+      res.status(500).json(serverError(products.message));
+      return;
+    }
+
+    order.Products = products;
+  }
+
+  res.status(200).json(successAction("Comanda encontrada com sucesso", order));
+};
+
 export const updateOrderDatabase: RequestHandler = async (
   req: Request,
   res: Response
@@ -52,7 +88,7 @@ export const updateOrderDatabase: RequestHandler = async (
   }
 
   const order: Order = req.body;
-  // console.log(JSON.stringify(order, null, 2));
+  console.log(JSON.stringify(order, null, 2));
 
   if (!order.Products || !order.User) {
     res.status(400).json(nullFields("Produtos ou Usuário não informados"));

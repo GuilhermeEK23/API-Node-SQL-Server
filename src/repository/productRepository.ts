@@ -52,3 +52,23 @@ export const getProducts = async (
     return error as Error;
   }
 };
+
+export const getPrinterByIdProduct = async (IdProduct: number) => {
+  try {
+    const pool = await getConnection();
+
+    if (pool instanceof Error) {
+      return pool;
+    }
+
+    const result = await pool.request().input("IdProduct", sql.Int, IdProduct)
+      .query(`
+      select Printer from ProductPrinters WHERE IdProduct = @IdProduct
+    `);
+
+    return result.recordset[0] as string;
+  } catch (error) {
+    console.error("Erro ao buscar impressora do banco de dados: ", error);
+    return error as Error;
+  }
+};

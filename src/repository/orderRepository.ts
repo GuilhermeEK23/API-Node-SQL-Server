@@ -1,6 +1,7 @@
 import { getConnection } from "../database/connection.js";
 import sql from "mssql";
 import { Order, Product } from "../types.js";
+import { printOrder } from "../printer/printer.js";
 
 export const getOrders = async (IdEnterprise: number) => {
   try {
@@ -13,12 +14,89 @@ export const getOrders = async (IdEnterprise: number) => {
     const result = await pool
       .request()
       .input("IdEnterprise", sql.Int, IdEnterprise).query(`
-        SELECT IdPosOrder as IdPosOrderServer, Code, Description, Date, Total, OrderStatus, Seller, Observations FROM POSOrders WHERE IdEnterprise = @IdEnterprise;
+        SELECT
+          IdPosOrder as IdPosOrderServer,
+          Code,
+          Description,
+          Date,
+          Total,
+          OrderStatus,
+          Seller,
+          Observations
+        FROM
+          POSOrders
+        WHERE
+          IdEnterprise = @IdEnterprise;
       `);
 
     return result.recordset as Order[];
   } catch (error) {
-    console.error("Erro ao buscar usuários do banco de dados: ", error);
+    console.error("Erro ao buscar comandas do banco de dados: ", error);
+    return error as Error;
+  }
+};
+
+export const getOrderProducts = async (IdPosOrderServer: number) => {
+  try {
+    const pool = await getConnection();
+
+    if (pool instanceof Error) {
+      return pool;
+    }
+
+    const result = await pool
+      .request()
+      .input("IdPosOrder", sql.Int, IdPosOrderServer).query<Product>(`
+      SELECT
+        IdPosOrderProduct as IdProductServer,
+        Description,
+        Type,
+        UnitPrice as SalePrice,
+        Quantity,
+        TotalPrice as Total,
+        Observations,
+        Options as Optionals
+      FROM
+        POSOrdersProducts
+      WHERE
+        IdPosOrder = @IdPosOrder;
+      `);
+
+    return result.recordset as Product[];
+  } catch (error) {
+    return error as Error;
+  }
+};
+
+export const getOrder = async (IdPosOrderServer: number) => {
+  try {
+    const pool = await getConnection();
+
+    if (pool instanceof Error) {
+      return pool;
+    }
+
+    const result = await pool
+      .request()
+      .input("IdPosOrderServer", sql.Int, IdPosOrderServer).query(`
+      SELECT
+          IdPosOrder as IdPosOrderServer,
+          Code,
+          Description,
+          Date,
+          Total,
+          OrderStatus,
+          Seller,
+          Observations
+        FROM
+          POSOrders
+        WHERE
+          IdPosOrder = @IdPosOrderServer; 
+    `);
+
+    return result.recordset[0] as Order;
+  } catch (error) {
+    console.error("Erro ao buscar a comanda do banco de dados: ", error);
     return error as Error;
   }
 };
@@ -180,9 +258,9 @@ export const putOrder = async (order: Order) => {
       }
 
       // Se não houver erro, retorna o resultado da atualização do pedido
+      // printOrder(order);
       return [...resultProducts, result];
     }
-    // formatAndPrint(dataBody);
     return new Error("Erro ao atualizar o pedido, nenhuma linha afetada.");
   } catch (error) {
     console.log(error);
